@@ -1,0 +1,54 @@
+{% extends 'clicker/base.html' %}
+
+{% block title %}Задания - Hamster Combat{% endblock %}
+
+{% block content %}
+<h2>Задания</h2>
+
+{% for task in tasks %}
+<div class="card task-card">
+    <div class="task-info">
+        <div class="task-name">{{ task.name }}</div>
+        <div class="task-description">{{ task.description }}</div>
+        <div class="task-status status-{{ task.status|default:'available' }}">
+            {% if task.is_completed %}
+                Выполнено
+            {% elif task.in_progress %}
+                В процессе
+            {% else %}
+                Доступно
+            {% endif %}
+        </div>
+    </div>
+    {% if task.is_completed %}
+    <form class="claim-form" method="post" action="{% url 'clicker:claim_task_reward' task.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-claim">Получить награду</button>
+    </form>
+    {% endif %}
+</div>
+{% empty %}
+<p>Нет доступных заданий.</p>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Обработчики для форм получения наград
+    document.querySelectorAll('.claim-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Отправляем запрос на получение награды
+            sendPostRequest(this.action, {}, function(data) {
+                // Обновляем баланс
+                updateBalance(data.new_balance);
+                
+                // В реальном приложении здесь нужно обновить статус задания в интерфейсе
+                // Пока просто перезагружаем страницу для простоты
+                location.reload();
+            });
+        });
+    });
+</script>
+{% endblock %}

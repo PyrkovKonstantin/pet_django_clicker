@@ -1,0 +1,50 @@
+{% extends 'clicker/base.html' %}
+
+{% block title %}Ежедневный бонус - Hamster Combat{% endblock %}
+
+{% block content %}
+<h2>Ежедневный бонус</h2>
+
+<div class="daily-calendar">
+    {% for day in reward_days %}
+    <div class="day day-{{ day.status }}" data-day="{{ day.day }}">
+        {% if day.status == 'claimed' %}
+        🎁
+        {% else %}
+        {{ day.day }}
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% for day in reward_days %}
+    {% if day.status == 'available' %}
+    <form id="claim-reward-form" method="post" action="{% url 'clicker:claim_daily_reward' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-claim">Получить награду за день {{ day.day }}</button>
+    </form>
+    {% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Обработчик для формы получения ежедневной награды
+    const claimForm = document.getElementById('claim-reward-form');
+    if (claimForm) {
+        claimForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Отправляем запрос на получение награды
+            sendPostRequest(this.action, {}, function(data) {
+                // Обновляем баланс
+                updateBalance(data.new_balance);
+                
+                // В реальном приложении здесь нужно обновить календарь в интерфейсе
+                // Пока просто перезагружаем страницу для простоты
+                location.reload();
+            });
+        });
+    }
+</script>
+{% endblock %}

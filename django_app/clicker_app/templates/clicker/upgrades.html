@@ -1,0 +1,61 @@
+{% extends 'clicker/base.html' %}
+
+{% block title %}Улучшения - Hamster Combat{% endblock %}
+
+{% block content %}
+<h2>Улучшения</h2>
+
+{% for upgrade in upgrades %}
+<div class="card upgrade-card">
+    <div class="upgrade-info">
+        <div class="upgrade-name">{{ upgrade.name }}</div>
+        <div class="upgrade-description">{{ upgrade.description }}</div>
+        <div class="upgrade-level">Уровень: {{ player_upgrades|get_item:upgrade.id|default:0 }}</div>
+        <div class="upgrade-cost">{{ upgrade.get_next_cost }} монет</div>
+    </div>
+    <form class="upgrade-form" data-upgrade-id="{{ upgrade.id }}" method="post" action="{% url 'clicker:buy_upgrade' upgrade.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-upgrade upgrade-button" 
+                data-upgrade-id="{{ upgrade.id }}"
+                {% if player.balance < upgrade.get_next_cost %}disabled{% endif %}>
+            Улучшить
+        </button>
+    </form>
+</div>
+{% empty %}
+<p>Нет доступных улучшений.</p>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Обработчики для форм покупки улучшений
+    document.querySelectorAll('.upgrade-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const upgradeId = this.dataset.upgradeId;
+            const button = this.querySelector('.upgrade-button');
+            
+            // Отправляем запрос на покупку улучшения
+            sendPostRequest(this.action, {}, function(data) {
+                // Обновляем баланс
+                updateBalance(data.new_balance);
+                
+                // Обновляем уровень улучшения в интерфейсе
+                const levelElement = document.querySelector(`.upgrade-card .upgrade-level`);
+                if (levelElement) {
+                    // В реальном приложении здесь нужно обновить конкретный элемент
+                    // Пока просто перезагружаем страницу для простоты
+                    location.reload();
+                }
+                
+                // Обновляем кнопку (активна/неактивна)
+                if (data.new_balance < parseInt(button.nextElementSibling?.textContent || '0')) {
+                    button.disabled = true;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

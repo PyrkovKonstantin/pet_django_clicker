@@ -1,0 +1,257 @@
+:root {
+    --bg-color: #f5f5f5;
+    --text-color: #333;
+    --primary-color: #ffcc00;
+    --secondary-color: #4CAF50;
+    --accent-color: #2196F3;
+    --danger-color: #f44336;
+    --card-bg: #ffffff;
+    --border-color: #ddd;
+}
+
+[data-theme="dark"] {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --card-bg: #1e1e1e;
+    --border-color: #333;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.balance {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: center;
+    margin: 20px 0;
+}
+
+.energy-bar {
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.energy-fill {
+    height: 20px;
+    background-color: var(--secondary-color);
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.energy-text {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.character {
+    display: block;
+    margin: 20px auto;
+    width: 150px;
+    height: 150px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: transform 0.1s;
+}
+
+.character:active {
+    transform: scale(0.95);
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.btn-upgrade {
+    background-color: var(--secondary-color);
+}
+
+.btn-claim {
+    background-color: var(--primary-color);
+    color: #333;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.upgrade-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upgrade-info {
+    flex-grow: 1;
+}
+
+.upgrade-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.upgrade-description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.upgrade-level {
+    font-size: 14px;
+    color: #888;
+}
+
+.upgrade-cost {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-info {
+    flex-grow: 1;
+}
+
+.task-status {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-available {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.status-completed {
+    background-color: #cccccc;
+    color: #666;
+}
+
+.status-in-progress {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.daily-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.day {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.day-unavailable {
+    background-color: #e0e0e0;
+    color: #999;
+}
+
+.day-available {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.day-claimed {
+    background-color: var(--primary-color);
+    color: #333;
+}
+
+nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+}
+
+.nav-item {
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-color);
+    font-size: 12px;
+}
+
+.nav-item.active {
+    color: var(--accent-color);
+}
+
+.nav-icon {
+    font-size: 20px;
+    display: block;
+}
+
+.content {
+    padding-bottom: 70px;
+}

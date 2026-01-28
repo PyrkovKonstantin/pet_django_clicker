@@ -1,0 +1,55 @@
+{% extends 'clicker/base.html' %}
+
+{% block title %}Главная - Hamster Combat{% endblock %}
+
+{% block content %}
+<div class="balance">{{ player.balance }} монет</div>
+
+<div class="energy-bar">
+    <div class="energy-fill" id="energy-fill"></div>
+</div>
+<div class="energy-text" id="energy-text">Энергия: {{ player.energy }} / {{ player.max_energy }}</div>
+
+<div class="character" id="character">🐹</div>
+
+<form id="click-form" method="post" action="{% url 'clicker:click' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn" id="click-button">Клик!</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Обновляем ширину полосы энергии при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        const energy = parseInt("{{ player.energy }}");
+        const maxEnergy = parseInt("{{ player.max_energy }}");
+        updateEnergy(energy, maxEnergy);
+    });
+
+    // Обработчик клика по персонажу
+    document.getElementById('character').addEventListener('click', function() {
+        document.getElementById('click-form').dispatchEvent(new Event('submit'));
+    });
+
+    // Обработчик формы клика
+    document.getElementById('click-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        sendPostRequest('{% url "clicker:click" %}', {}, function(data) {
+            // Обновляем баланс
+            updateBalance(data.new_balance);
+            
+            // Обновляем энергию
+            updateEnergy(data.new_energy, parseInt("{{ player.max_energy }}"));
+            
+            // Добавляем визуальный эффект
+            const character = document.getElementById('character');
+            character.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                character.style.transform = 'scale(1)';
+            }, 100);
+        });
+    });
+</script>
+{% endblock %}
