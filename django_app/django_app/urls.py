@@ -7,7 +7,7 @@ from clicker_app import views as clicker_views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),
-
+    path('', include('clicker_app.urls')),
     
     # Clicker app API endpoints
     path('api/player/', clicker_views.player_profile, name='player_profile'),
