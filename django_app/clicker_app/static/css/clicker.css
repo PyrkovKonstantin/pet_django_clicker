@@ -318,3 +318,23 @@ nav {
 .auth-link a:hover {
     text-decoration: underline;
 }
+
+/* Coin animation */
+.coin {
+    position: absolute;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 1000;
+    animation: fall 1s ease-out forwards;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100px);
+        opacity: 0;
+    }
+}

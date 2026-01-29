@@ -18,6 +18,36 @@ class Player(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     is_verified = models.BooleanField(default=False)
 
+    def get_current_energy(self):
+        """
+        Calculate current energy based on time passed since last update
+        """
+        if self.energy >= self.max_energy:
+            return self.energy
+        
+        # Calculate seconds passed since last energy update
+        time_passed = timezone.now() - self.last_energy_update
+        seconds_passed = int(time_passed.total_seconds())
+        
+        # Calculate energy regenerated
+        energy_regenerated = seconds_passed * self.energy_regen_rate
+        
+        # Update energy (but not above max_energy)
+        new_energy = min(self.energy + energy_regenerated, self.max_energy)
+        
+        return new_energy
+
+    def update_energy(self):
+        """
+        Update energy and last_energy_update timestamp
+        """
+        current_energy = self.get_current_energy()
+        if current_energy != self.energy:
+            self.energy = current_energy
+            self.last_energy_update = timezone.now()
+            self.save(update_fields=['energy', 'last_energy_update'])
+        return self.energy
+
     def __str__(self):
         return f"{self.username or self.user.username} (Level {self.level})"
 

@@ -91,12 +91,11 @@
                 if (data.success) {
                     successCallback(data);
                 } else {
-                    alert('Ошибка: ' + data.error);
+                    console.error('Ошибка:', data.error);
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Произошла ошибка при выполнении запроса');
             });
         }
 

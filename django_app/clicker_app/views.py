@@ -2,8 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db.models import F
@@ -24,6 +25,9 @@ def index(request):
         except Player.DoesNotExist:
             # Create player profile if it doesn't exist
             player = Player.objects.create(user=request.user)
+        
+        # Update energy before returning data
+        player.update_energy()
         
         context = {
             'player': {
@@ -277,6 +281,9 @@ def player_profile(request):
     player.last_login = timezone.now()
     player.save()
     
+    # Update energy before returning data
+    player.update_energy()
+    
     serializer = PlayerSerializer(player)
     return Response(serializer.data)
 
@@ -304,7 +311,7 @@ def sync_player_state(request):
     player.energy = energy
     player.balance = balance
     player.last_energy_update = timezone.now()
-    player.save()
+    player.save(update_fields=['energy', 'balance', 'last_energy_update'])
     
     serializer = PlayerSerializer(player)
     return Response(serializer.data)
@@ -312,6 +319,7 @@ def sync_player_state(request):
 
 # Click Views
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication, BasicAuthentication])
 @permission_classes([IsAuthenticated])
 def process_click(request):
     """
@@ -355,7 +363,7 @@ def process_click(request):
     player.energy -= clicks
     player.balance += clicks * player.coins_per_click
     player.last_energy_update = timezone.now()
-    player.save()
+    player.save(update_fields=['energy', 'balance', 'last_energy_update'])
     
     # Return updated player state
     return Response({
@@ -442,7 +450,7 @@ def purchase_upgrade(request):
     elif upgrade.upgrade_type == 'energy_regen':
         player.energy_regen_rate += upgrade.base_effect_value + (upgrade.effect_per_level * (player_upgrade.level - 1))
     
-    player.save()
+    player.save(update_fields=['coins_per_click', 'max_energy', 'energy_regen_rate'])
     
     # Return updated player and upgrade info
     player_serializer = PlayerSerializer(player)
@@ -517,7 +525,7 @@ def claim_daily_reward(request):
     # Award reward
     if reward.reward_type == 'coins':
         player.balance += reward.reward_amount
-        player.save()
+        player.save(update_fields=['balance'])
     
     # Record claim
     player_reward = PlayerDailyReward.objects.create(
@@ -611,7 +619,7 @@ def claim_task_reward(request):
     # Award reward
     player.balance += task.reward_coins
     player.energy = min(player.energy + task.reward_energy, player.max_energy)
-    player.save()
+    player.save(update_fields=['balance', 'energy'])
     
     # Mark reward as claimed
     player_task.completed_at = timezone.now()

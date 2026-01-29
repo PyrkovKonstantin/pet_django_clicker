@@ -3,7 +3,7 @@
 {% block title %}Главная - Hamster Combat{% endblock %}
 
 {% block content %}
-<div class="balance">{{ player.balance }} монет</div>
+<div class="balance" id="balance">{{ player.balance }} монет</div>
 
 <div class="energy-bar">
     <div class="energy-fill" id="energy-fill"></div>
@@ -12,41 +12,195 @@
 
 <div class="character" id="character">🐹</div>
 
-<form id="click-form" method="post" action="{% url 'clicker:click' %}">
-    {% csrf_token %}
-    <button type="submit" class="btn" id="click-button">Клик!</button>
-</form>
+<!-- Coin animation container -->
+<div id="coin-container"></div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Глобальные переменные для отслеживания энергии
+    let currentEnergy = parseInt("{{ player.energy }}");
+    let maxEnergy = parseInt("{{ player.max_energy }}");
+    let energyRegenRate = 1; // Предполагаем, что регенерация 1 в секунду
+    let lastEnergyUpdate = new Date(); // Время последнего обновления энергии
+    let energyTimer = null; // Таймер для регенерации энергии
+    
+    // Функция для создания анимации падающей монеты
+    function createCoinAnimation() {
+        const coin = document.createElement('div');
+        coin.innerHTML = '💵';
+        coin.className = 'coin';
+        
+        // Позиционируем монету над персонажем
+        const character = document.getElementById('character');
+        const rect = character.getBoundingClientRect();
+        coin.style.left = (rect.left + rect.width / 2 - 12) + 'px';
+        coin.style.top = (rect.top - 50) + 'px';
+        
+        document.body.appendChild(coin);
+        
+        // Удаляем монету после завершения анимации
+        setTimeout(() => {
+            if (coin.parentNode) {
+                coin.parentNode.removeChild(coin);
+            }
+        }, 1000);
+    }
+    
+    // Функция для обновления отображения энергии
+    function updateEnergyDisplay() {
+        const energyFillElement = document.getElementById('energy-fill');
+        const energyTextElement = document.getElementById('energy-text');
+        
+        if (energyFillElement) {
+            energyFillElement.style.width = (currentEnergy / maxEnergy * 100) + '%';
+        }
+        
+        if (energyTextElement) {
+            energyTextElement.textContent = 'Энергия: ' + currentEnergy + ' / ' + maxEnergy;
+        }
+    }
+    
+    // Функция для обновления энергии на основе времени
+    function updateEnergy() {
+        const now = new Date();
+        const secondsPassed = Math.floor((now - lastEnergyUpdate) / 1000);
+        
+        // Если прошла хотя бы одна секунда и энергия не максимальна
+        if (secondsPassed > 0 && currentEnergy < maxEnergy) {
+            const energyToAdd = Math.min(secondsPassed * energyRegenRate, maxEnergy - currentEnergy);
+            currentEnergy = Math.min(currentEnergy + energyToAdd, maxEnergy);
+            lastEnergyUpdate = now;
+            updateEnergyDisplay();
+        }
+        
+        // Если энергия достигла максимума, останавливаем таймер
+        if (currentEnergy >= maxEnergy) {
+            stopEnergyRegen();
+        }
+    }
+    
+    // Функция для запуска регенерации энергии
+    function startEnergyRegen() {
+        if (energyTimer) {
+            clearInterval(energyTimer);
+        }
+        energyTimer = setInterval(updateEnergy, 1000); // Обновляем каждую секунду
+    }
+    
+    // Функция для остановки регенерации энергии
+    function stopEnergyRegen() {
+        if (energyTimer) {
+            clearInterval(energyTimer);
+            energyTimer = null;
+        }
+    }
+    
+    // Функция для синхронизации с сервером
+    function syncWithServer() {
+        fetch('{% url "player_profile" %}')
+        .then(response => response.json())
+        .then(data => {
+            currentEnergy = data.energy;
+            maxEnergy = data.max_energy;
+            energyRegenRate = data.energy_regen_rate || 1;
+            lastEnergyUpdate = new Date();
+            updateEnergyDisplay();
+            
+            // Перезапускаем таймер регенерации
+            if (currentEnergy < maxEnergy) {
+                startEnergyRegen();
+            } else {
+                stopEnergyRegen();
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка синхронизации с сервером:', error);
+        });
+    }
+    
     // Обновляем ширину полосы энергии при загрузке страницы
     document.addEventListener('DOMContentLoaded', function() {
-        const energy = parseInt("{{ player.energy }}");
-        const maxEnergy = parseInt("{{ player.max_energy }}");
-        updateEnergy(energy, maxEnergy);
+        updateEnergyDisplay();
+        
+        // Запускаем регенерацию энергии, если энергия не максимальна
+        if (currentEnergy < maxEnergy) {
+            startEnergyRegen();
+        }
+        
+        // Периодическая синхронизация с сервером (каждые 30 секунд)
+        setInterval(syncWithServer, 30000);
     });
-
+    
     // Обработчик клика по персонажу
     document.getElementById('character').addEventListener('click', function() {
-        document.getElementById('click-form').dispatchEvent(new Event('submit'));
-    });
-
-    // Обработчик формы клика
-    document.getElementById('click-form').addEventListener('submit', function(e) {
-        e.preventDefault();
+        // Создаем анимацию монеты
+        createCoinAnimation();
         
-        sendPostRequest('{% url "clicker:click" %}', {
+        // Проверяем, достаточно ли энергии
+        if (currentEnergy < 1) {
+            alert('Недостаточно энергии!');
+            return;
+        }
+        
+        // Получаем CSRF токен из cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Подготавливаем данные для отправки
+        const data = {
             clicks: 1,
             timestamp: new Date().toISOString(),
-            energy: parseInt("{{ player.energy }}") - 1,
-            balance: parseInt("{{ player.balance }}") + 1
-        }, function(data) {
+            energy: currentEnergy,
+            balance: parseInt(document.getElementById('balance').textContent)
+        };
+        
+        // Отправляем AJAX-запрос
+        fetch('{% url "clicker:click" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
             // Обновляем баланс
-            updateBalance(data.balance);
+            const balanceElement = document.getElementById('balance');
+            if (balanceElement) {
+                balanceElement.textContent = data.balance + ' монет';
+            }
             
-            // Обновляем энергию
-            updateEnergy(data.energy, data.max_energy);
+            // Обновляем энергию из ответа сервера
+            currentEnergy = data.energy;
+            maxEnergy = data.max_energy;
+            lastEnergyUpdate = new Date();
+            updateEnergyDisplay();
+            
+            // Перезапускаем таймер регенерации
+            if (currentEnergy < maxEnergy) {
+                startEnergyRegen();
+            } else {
+                stopEnergyRegen();
+            }
             
             // Добавляем визуальный эффект
             const character = document.getElementById('character');
@@ -54,6 +208,11 @@
             setTimeout(() => {
                 character.style.transform = 'scale(1)';
             }, 100);
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            // Показываем уведомление об ошибке
+            alert('Произошла ошибка при обработке клика. Пожалуйста, попробуйте еще раз.');
         });
     });
 </script>
