@@ -243,30 +243,26 @@ export class GameService {
     // Apply upgrade effect
     let playerUpdateData: any = {};
 
+    // Calculate the effect value (same as Django: base_effect_value + (effect_per_level * (level - 1)))
+    const effectValue = upgrade.baseEffectValue + (upgrade.effectPerLevel * (updatedPlayerUpgrade.level - 1));
+
     if (upgrade.upgradeType === "coins_per_click") {
       playerUpdateData.coinsPerClick = {
-        increment:
-          upgrade.baseEffectValue +
-          upgrade.effectPerLevel * (updatedPlayerUpgrade.level - 1),
+        increment: effectValue,
       };
     } else if (upgrade.upgradeType === "max_energy") {
       playerUpdateData.maxEnergy = {
-        increment:
-          upgrade.baseEffectValue +
-          upgrade.effectPerLevel * (updatedPlayerUpgrade.level - 1),
+        increment: effectValue,
       };
       // Restore energy to new max if it was at max
       if (player.energy === player.maxEnergy) {
-        playerUpdateData.energy =
-          player.maxEnergy +
-          (upgrade.baseEffectValue +
-            upgrade.effectPerLevel * (updatedPlayerUpgrade.level - 1));
+        playerUpdateData.energy = {
+          increment: effectValue,
+        };
       }
     } else if (upgrade.upgradeType === "energy_regen") {
       playerUpdateData.energyRegenRate = {
-        increment:
-          upgrade.baseEffectValue +
-          upgrade.effectPerLevel * (updatedPlayerUpgrade.level - 1),
+        increment: effectValue,
       };
     }
 
@@ -362,6 +358,7 @@ export class GameService {
     const lastClaim = await prisma.playerDailyReward.findFirst({
       where: { playerId: player.id },
       orderBy: { claimedAt: "desc" },
+      include: { reward: true }
     });
 
     let nextDay: number;
@@ -378,7 +375,12 @@ export class GameService {
       }
 
       // Calculate next day
-      nextDay = lastClaim.rewardId + 1;
+      nextDay = lastClaim.reward.day + 1;
+      
+      // If next day exceeds 7, reset to day 1 (weekly cycle)
+      if (nextDay > 7) {
+        nextDay = 1;
+      }
     } else {
       // First claim
       nextDay = 1;

@@ -7,6 +7,7 @@ import logger from './utils/logger.js';
 
 // Import routes
 import authRoutes from './routes/auth.routes.js';
+import gameRoutes from './routes/game.routes.js';
 
 // Import middleware
 import { errorMiddleware } from './middleware/error.middleware.js';
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/game', gameRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

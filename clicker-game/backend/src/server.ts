@@ -1,5 +1,5 @@
-import app from './app.js';
 import dotenv from 'dotenv';
+import app from './app';
 
 // Load environment variables
 dotenv.config();
@@ -13,5 +13,6 @@ app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  console.log('Gracefully shutting down...');
   process.exit(0);
 });
