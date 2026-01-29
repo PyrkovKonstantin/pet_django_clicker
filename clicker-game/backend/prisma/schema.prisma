@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password      String
+  username      String?
+  telegramId    BigInt?  @unique
+  isVerified    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  lastLogin     DateTime @default(now())
+  Player        Player?
+}
+
+model Player {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id])
+  username          String?
+  balance           BigInt   @default(0)
+  level             Int      @default(1)
+  energy            Int      @default(1000)
+  maxEnergy         Int      @default(1000)
+  energyRegenRate   Int      @default(1)
+  coinsPerClick     Int      @default(1)
+  lastEnergyUpdate  DateTime @default(now())
+  createdAt         DateTime @default(now())
+  lastLogin         DateTime @default(now())
+  isVerified        Boolean  @default(false)
+  
+  // Relations
+  playerUpgrades    PlayerUpgrade[]
+  playerDailyRewards PlayerDailyReward[]
+  playerTasks       PlayerTask[]
+  referralsAsReferrer Referral[] @relation("ReferrerRelation")
+  referralsAsReferred Referral[] @relation("ReferredRelation")
+}
+
+model Upgrade {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String
+  icon            String?
+  baseCost        Int
+  costMultiplier   Float    @default(1.15)
+  upgradeType     String   // 'coins_per_click', 'max_energy', 'energy_regen', 'multiplier'
+  baseEffectValue Int
+  effectPerLevel  Int
+  maxLevel        Int      @default(100)
+  isActive        Boolean  @default(true)
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  playerUpgrades  PlayerUpgrade[]
+}
+
+model PlayerUpgrade {
+  id         Int      @id @default(autoincrement())
+  playerId   Int
+  player     Player   @relation(fields: [playerId], references: [id])
+  upgradeId  Int
+  upgrade    Upgrade  @relation(fields: [upgradeId], references: [id])
+  level      Int      @default(0)
+  purchasedAt DateTime @default(now())
+  
+  @@unique([playerId, upgradeId])
+}
+
+model DailyReward {
+  id           Int      @id @default(autoincrement())
+  day          Int      @unique
+  rewardType   String   @default("coins") // 'coins'
+  rewardAmount Int
+  isSpecial    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  playerDailyRewards PlayerDailyReward[]
+}
+
+model PlayerDailyReward {
+  id            Int      @id @default(autoincrement())
+  playerId      Int
+  player        Player   @relation(fields: [playerId], references: [id])
+  rewardId      Int
+  reward        DailyReward @relation(fields: [rewardId], references: [id])
+  claimedAt     DateTime @default(now())
+  isConsecutive Boolean  @default(true)
+}
+
+model Task {
+  id            Int      @id @default(autoincrement())
+  name          String
+  description   String
+  taskType      String   // 'clicks', 'upgrades', 'referrals', 'level', 'balance'
+  targetValue   Int
+  rewardCoins   Int
+  rewardEnergy  Int      @default(0)
+  isActive      Boolean  @default(true)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  playerTasks   PlayerTask[]
+}
+
+model PlayerTask {
+  id           Int      @id @default(autoincrement())
+  playerId     Int
+  player       Player   @relation(fields: [playerId], references: [id])
+  taskId       Int
+  task         Task     @relation(fields: [taskId], references: [id])
+  progress     Int      @default(0)
+  isCompleted  Boolean  @default(false)
+  completedAt  DateTime?
+  
+  @@unique([playerId, taskId])
+}
+
+model Referral {
+  id           Int      @id @default(autoincrement())
+  referrerId   Int
+  referrer     Player   @relation("ReferrerRelation", fields: [referrerId], references: [id])
+  referredId   Int
+  referred     Player   @relation("ReferredRelation", fields: [referredId], references: [id])
+  createdAt    DateTime @default(now())
+  rewardClaimed Boolean @default(false)
+  
+  @@unique([referrerId, referredId])
+}
