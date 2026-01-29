@@ -150,3 +150,7 @@ CELERY_TIMEZONE = 'UTC'
 
 # Celery Beat Scheduler
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Authentication settings
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'

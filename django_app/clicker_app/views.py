@@ -1,4 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from django.contrib.auth.forms import UserCreationForm
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -15,21 +17,79 @@ from .serializers import (
 
 # Simple views for rendering templates
 def index(request):
-    # For now, we'll pass dummy data or create a simple player if needed
-    # In a real app, you'd fetch the actual player data
-    context = {
-        'player': {
-            'balance': 1000,
-            'energy': 50,
-            'max_energy': 100
+    # If user is authenticated, fetch their actual player data
+    if request.user.is_authenticated:
+        try:
+            player = request.user.player
+        except Player.DoesNotExist:
+            # Create player profile if it doesn't exist
+            player = Player.objects.create(user=request.user)
+        
+        context = {
+            'player': {
+                'balance': player.balance,
+                'energy': player.energy,
+                'max_energy': player.max_energy
+            }
         }
-    }
+    else:
+        # For anonymous users, show dummy data
+        context = {
+            'player': {
+                'balance': 1000,
+                'energy': 50,
+                'max_energy': 100
+            }
+        }
+    
     return render(request, 'clicker/index.html', context)
 
-
+# Hgnq4cvqhQ68Cv@
 def tasks(request):
-    context = {
-        'tasks': [
+    # If user is authenticated, fetch their actual tasks data
+    if request.user.is_authenticated:
+        try:
+            player = request.user.player
+            # Get all active tasks
+            tasks = Task.objects.filter(is_active=True)
+            
+            # Get player's task progress
+            player_tasks = PlayerTask.objects.filter(player=player, task__in=tasks)
+            player_tasks_dict = {pt.task_id: pt for pt in player_tasks}
+            
+            # Prepare tasks data
+            tasks_data = []
+            for task in tasks:
+                player_task = player_tasks_dict.get(task.id)
+                task_data = {
+                    'id': task.id,
+                    'name': task.name,
+                    'description': task.description,
+                    'is_completed': player_task.is_completed if player_task else False,
+                    'in_progress': player_task is not None and not player_task.is_completed if player_task else False
+                }
+                tasks_data.append(task_data)
+        except Player.DoesNotExist:
+            # If no player profile, use dummy data
+            tasks_data = [
+                {
+                    'id': 1,
+                    'name': 'Первый клик',
+                    'description': 'Сделайте свой первый клик',
+                    'is_completed': False,
+                    'in_progress': True
+                },
+                {
+                    'id': 2,
+                    'name': '100 кликов',
+                    'description': 'Сделайте 100 кликов',
+                    'is_completed': False,
+                    'in_progress': False
+                }
+            ]
+    else:
+        # For anonymous users, show dummy data
+        tasks_data = [
             {
                 'id': 1,
                 'name': 'Первый клик',
@@ -45,13 +105,67 @@ def tasks(request):
                 'in_progress': False
             }
         ]
+    
+    context = {
+        'tasks': tasks_data
     }
     return render(request, 'clicker/tasks.html', context)
 
 
 def upgrades(request):
-    context = {
-        'upgrades': [
+    # If user is authenticated, fetch their actual upgrades data
+    if request.user.is_authenticated:
+        try:
+            player = request.user.player
+            # Get all active upgrades
+            upgrades = Upgrade.objects.filter(is_active=True)
+            
+            # Get player's upgrade levels
+            player_upgrades = PlayerUpgrade.objects.filter(player=player, upgrade__in=upgrades)
+            player_upgrades_dict = {pu.upgrade_id: pu for pu in player_upgrades}
+            
+            # Prepare upgrades data
+            upgrades_data = []
+            for upgrade in upgrades:
+                player_upgrade = player_upgrades_dict.get(upgrade.id)
+                if player_upgrade:
+                    next_cost = upgrade.get_cost(player_upgrade.level)
+                else:
+                    next_cost = upgrade.get_cost(0)
+                
+                upgrade_data = {
+                    'id': upgrade.id,
+                    'name': upgrade.name,
+                    'description': upgrade.description,
+                    'get_next_cost': next_cost
+                }
+                upgrades_data.append(upgrade_data)
+            
+            player_data = {
+                'balance': player.balance
+            }
+        except Player.DoesNotExist:
+            # If no player profile, use dummy data
+            upgrades_data = [
+                {
+                    'id': 1,
+                    'name': 'Увеличение монет за клик',
+                    'description': 'Увеличивает количество монет за клик',
+                    'get_next_cost': 100
+                },
+                {
+                    'id': 2,
+                    'name': 'Увеличение максимальной энергии',
+                    'description': 'Увеличивает максимальную энергию',
+                    'get_next_cost': 200
+                }
+            ]
+            player_data = {
+                'balance': 1000
+            }
+    else:
+        # For anonymous users, show dummy data
+        upgrades_data = [
             {
                 'id': 1,
                 'name': 'Увеличение монет за клик',
@@ -64,18 +178,73 @@ def upgrades(request):
                 'description': 'Увеличивает максимальную энергию',
                 'get_next_cost': 200
             }
-        ],
-        'player': {
+        ]
+        player_data = {
             'balance': 1000
-        },
+        }
+    
+    context = {
+        'upgrades': upgrades_data,
+        'player': player_data,
         'player_upgrades': {}
     }
     return render(request, 'clicker/upgrades.html', context)
 
 
 def daily_reward(request):
-    context = {
-        'reward_days': [
+    # If user is authenticated, fetch their actual daily reward data
+    if request.user.is_authenticated:
+        try:
+            player = request.user.player
+            # Get all rewards
+            rewards = DailyReward.objects.all().order_by('day')
+            
+            # Get player's claimed rewards
+            player_rewards = PlayerDailyReward.objects.filter(player=player).order_by('-claimed_at')
+            last_claim = player_rewards.first()
+            
+            # Determine current day
+            if last_claim:
+                if last_claim.claimed_at.date() == timezone.now().date():
+                    # Already claimed today
+                    current_day = last_claim.reward.day
+                else:
+                    # Next day
+                    current_day = last_claim.reward.day + 1
+                    if current_day > 7:
+                        current_day = 1
+            else:
+                # First claim
+                current_day = 1
+            
+            # Prepare reward days data
+            reward_days_data = []
+            for reward in rewards:
+                if reward.day < current_day:
+                    status = 'claimed'
+                elif reward.day == current_day:
+                    status = 'available'
+                else:
+                    status = 'upcoming'
+                
+                reward_days_data.append({
+                    'day': reward.day,
+                    'status': status
+                })
+        except Player.DoesNotExist:
+            # If no player profile, use dummy data
+            reward_days_data = [
+                {'day': 1, 'status': 'claimed'},
+                {'day': 2, 'status': 'available'},
+                {'day': 3, 'status': 'upcoming'},
+                {'day': 4, 'status': 'upcoming'},
+                {'day': 5, 'status': 'upcoming'},
+                {'day': 6, 'status': 'upcoming'},
+                {'day': 7, 'status': 'upcoming'}
+            ]
+    else:
+        # For anonymous users, show dummy data
+        reward_days_data = [
             {'day': 1, 'status': 'claimed'},
             {'day': 2, 'status': 'available'},
             {'day': 3, 'status': 'upcoming'},
@@ -84,6 +253,9 @@ def daily_reward(request):
             {'day': 6, 'status': 'upcoming'},
             {'day': 7, 'status': 'upcoming'}
         ]
+    
+    context = {
+        'reward_days': reward_days_data
     }
     return render(request, 'clicker/daily_reward.html', context)
 
@@ -140,12 +312,20 @@ def sync_player_state(request):
 
 # Click Views
 @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def process_click(request):
     """
     Process a click action
     """
-    serializer = ClickSerializer(data=request.data)
+    # Make a copy of the data to modify it
+    data = request.data.copy()
+    
+    # If timestamp is a string, parse it
+    if isinstance(data.get('timestamp'), str):
+        from django.utils.dateparse import parse_datetime
+        data['timestamp'] = parse_datetime(data['timestamp'])
+    
+    serializer = ClickSerializer(data=data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -178,8 +358,11 @@ def process_click(request):
     player.save()
     
     # Return updated player state
-    serializer = PlayerSerializer(player)
-    return Response(serializer.data)
+    return Response({
+        'balance': player.balance,
+        'energy': player.energy,
+        'max_energy': player.max_energy
+    })
 
 
 # Upgrade Views
@@ -442,3 +625,35 @@ def claim_task_reward(request):
         'player': player_serializer.data,
         'task': task_serializer.data
     })
+
+
+# Authentication Views
+from django.contrib.auth import logout
+from django.http import JsonResponse
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """
+    Handle logout via POST request
+    """
+    logout(request)
+    return Response({'success': True})
+
+def register(request):
+    """
+    Handle user registration
+    """
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Automatically log in the user after registration
+            login(request, user)
+            # Create player profile for the new user
+            Player.objects.get_or_create(user=user)
+            return redirect('clicker:index')
+    else:
+        form = UserCreationForm()
+    
+    return render(request, 'clicker/register.html', {'form': form})

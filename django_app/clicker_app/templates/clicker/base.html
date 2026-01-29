@@ -36,6 +36,23 @@
             <span class="nav-icon">🎁</span>
             <span>Бонус</span>
         </a>
+        
+        <!-- Authentication links -->
+        {% if user.is_authenticated %}
+            <a href="#" class="nav-item" id="logout-link">
+                <span class="nav-icon">🚪</span>
+                <span>Выйти ({{ user.username }})</span>
+            </a>
+        {% else %}
+            <a href="{% url 'clicker:login' %}" class="nav-item">
+                <span class="nav-icon">🔐</span>
+                <span>Войти</span>
+            </a>
+            <a href="{% url 'clicker:register' %}" class="nav-item">
+                <span class="nav-icon">📝</span>
+                <span>Регистрация</span>
+            </a>
+        {% endif %}
     </nav>
 
     <script>
@@ -64,9 +81,10 @@
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: new URLSearchParams(data)
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
@@ -103,6 +121,21 @@
                 energyTextElement.textContent = 'Энергия: ' + energy + ' / ' + maxEnergy;
             }
         }
+        
+        // Обработчик выхода
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutLink = document.getElementById('logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    sendPostRequest('{% url "clicker:logout" %}', {}, function(data) {
+                        if (data.success) {
+                            window.location.href = '{% url "clicker:index" %}';
+                        }
+                    });
+                });
+            }
+        });
     </script>
     
     {% block scripts %}

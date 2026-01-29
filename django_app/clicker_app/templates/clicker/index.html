@@ -36,12 +36,17 @@
     document.getElementById('click-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        sendPostRequest('{% url "clicker:click" %}', {}, function(data) {
+        sendPostRequest('{% url "clicker:click" %}', {
+            clicks: 1,
+            timestamp: new Date().toISOString(),
+            energy: parseInt("{{ player.energy }}") - 1,
+            balance: parseInt("{{ player.balance }}") + 1
+        }, function(data) {
             // Обновляем баланс
-            updateBalance(data.new_balance);
+            updateBalance(data.balance);
             
             // Обновляем энергию
-            updateEnergy(data.new_energy, parseInt("{{ player.max_energy }}"));
+            updateEnergy(data.energy, data.max_energy);
             
             // Добавляем визуальный эффект
             const character = document.getElementById('character');
