@@ -17,8 +17,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
     
     // If no access token, check for refresh token in cookies
-    if (!token && req.cookies?.refreshToken) {
-      token = req.cookies.refreshToken;
+    if (!token && req.cookies?.['refreshToken']) {
+      token = req.cookies['refreshToken'];
     }
     
     // If no token found, return error

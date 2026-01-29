@@ -31,7 +31,7 @@ export class AuthService {
     const player = await prisma.player.create({
       data: {
         userId: user.id,
-        username: user.username || undefined
+        username: user.username
       }
     });
 
@@ -93,7 +93,7 @@ export class AuthService {
       player = await prisma.player.create({
         data: {
           userId: user.id,
-          username: user.username || undefined
+          username: user.username
         }
       });
     }
