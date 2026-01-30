@@ -14,6 +14,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@inversifyjs/http-core": "^4.10.2",
+    "@inversifyjs/http-express": "^4.10.2",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "bcryptjs": "^3.0.3",
