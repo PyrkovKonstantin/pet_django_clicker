@@ -3,12 +3,14 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { RegisterDto, LoginDto } from '../dtos/auth.dto.js';
 import { AuthService } from '../services/auth.service.js';
+import { inject } from 'inversify';
+import { TYPES } from '../types.js';
 
 export class AuthController {
   private authService: AuthService;
 
-  constructor() {
-    this.authService = new AuthService();
+  constructor(@inject(TYPES.AuthService) authService: AuthService) {
+    this.authService = authService;
   }
 
   /**

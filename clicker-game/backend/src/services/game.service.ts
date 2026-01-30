@@ -1,3 +1,4 @@
+import { injectable } from 'inversify';
 import {
   DailyReward,
   PlayerDailyReward,
@@ -8,6 +9,7 @@ import {
 } from "../../generated/prisma/browser";
 import { prisma } from "../utils/prisma.js";
 
+@injectable()
 export class GameService {
   /**
    * Get player profile

@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { GameController } from '../controllers/game.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { container } from '../container.js';
 
 const router = Router();
-const gameController = new GameController();
+const gameController = container.get<GameController>('GameController');
 
 /**
  * @route GET /game/player

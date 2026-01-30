@@ -1,6 +1,8 @@
+import { injectable } from 'inversify';
 import { prisma } from '../utils/prisma.js';
 import { AuthUtils } from '../utils/auth.utils.js';
 
+@injectable()
 export class AuthService {
   /**
    * Register a new user

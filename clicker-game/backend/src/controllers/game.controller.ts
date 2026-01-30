@@ -3,12 +3,14 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ClickDto, UpgradePurchaseDto, ClaimTaskRewardDto } from '../dtos/game.dto.js';
 import { GameService } from '../services/game.service.js';
+import { inject } from 'inversify';
+import { TYPES } from '../types.js';
 
 export class GameController {
   private gameService: GameService;
 
-  constructor() {
-    this.gameService = new GameService();
+  constructor(@inject(TYPES.GameService) gameService: GameService) {
+    this.gameService = gameService;
   }
 
   /**

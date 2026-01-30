@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller.js';
+import { container } from '../container.js';
 
 const router = Router();
-const authController = new AuthController();
+const authController = container.get<AuthController>('AuthController');
 
 /**
  * @route POST /auth/register
